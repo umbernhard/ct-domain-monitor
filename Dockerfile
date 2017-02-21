@@ -1,4 +1,9 @@
-# Start from a Debian image with the latest version of Go installed
-# and a workspace (GOPATH) configured at /go.
-FROM umbernhard/ct-domain-monitor 
+FROM golang 
 
+MAINTAINER Matt Bernhard
+
+ADD . /go/src/github.com/ct-domain-monitor 
+
+RUN go install github.com/ct-domain-monitor 
+
+ENTRYPOINT /go/bin/ct-domain-monitor
