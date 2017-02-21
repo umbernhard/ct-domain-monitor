@@ -1,0 +1,7 @@
+language: go
+go:
+- 1.6.2
+before_install:
+before_script:
+script:
+  - go test -v ./...
