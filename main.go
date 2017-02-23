@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/op/go-logging"
-	"github.com/research/censys-ctsync/censys-queuer"
 	"github.com/research/censys-ctsync/censys-queuer/protobufs/zsearch_definitions"
 	"github.com/zmap/zgrab/ztools/zct"
 	"github.com/zmap/zgrab/ztools/zct/scanner"
@@ -44,6 +43,10 @@ var log = logging.MustGetLogger("")
 var format = logging.MustStringFormatter(
 	`%{color}%{time:15:04:05} %{shortfunc} ▶ %{level:.4s} %{id:03x}%{color:reset} %{message}`,
 )
+
+// TODO instrument for Prometheus
+// TODO interface for adding, removing, and showing hostnames and certs (REST?)
+// TODO postgres
 
 func (logs Configuration) WriteConfig(filename string) error {
 	f, err := os.Create(filename)
@@ -84,6 +87,7 @@ func NewConfiguration(filename string) (Configuration, error) {
 	return res, nil
 }
 
+// TODO merge with foundPrecert
 func foundCert(entry *ct.LogEntry, server string) {
 	var parent_fingerprint [32]byte
 	if len(entry.Chain) > 0 {
@@ -140,12 +144,13 @@ func foundCert(entry *ct.LogEntry, server string) {
 			log.Debugf("Invalid leaf chain for %s:%d: %s\n", serverName, entry.Index, err.Error())
 		}
 	}
-	err = censys.ImportCertificateCT(nil, entry.X509Cert.Raw, serverName, entry.Index, entry.Leaf.TimestampedEntry.Timestamp, parent_fingerprint[:], valid)
-	if err != nil {
-		log.Noticef("Err importing certificate for %s:%d: %s\n", serverName, entry.Index, err)
-	} else {
-		log.Infof("Success importing certificate for %s:%d\n", serverName, entry.Index)
-	}
+	// TODO replace with postgres
+	//	err = censys.ImportCertificateCT(nil, entry.X509Cert.Raw, serverName, entry.Index, entry.Leaf.TimestampedEntry.Timestamp, parent_fingerprint[:], valid)
+	//	if err != nil {
+	//		log.Noticef("Err importing certificate for %s:%d: %s\n", serverName, entry.Index, err)
+	//	} else {
+	//		log.Infof("Success importing certificate for %s:%d\n", serverName, entry.Index)
+	//	}
 
 	// Submit all chain entries
 	for i, interBytes := range entry.Chain {
@@ -180,15 +185,17 @@ func foundCert(entry *ct.LogEntry, server string) {
 		} else {
 			log.Debugf("Invalid chain for %s:%d\n", serverName, entry.Index)
 		}
-		err = censys.ImportCertificateCTChain(nil, tmp.Raw, serverName, entry.Index, entry.Leaf.TimestampedEntry.Timestamp, parent_print[:], chain_valid)
-		if err != nil {
-			log.Noticef("Err submitting chain for %s:%d: %s\n", serverName, entry.Index, err)
-		} else {
-			log.Infof("Success importing certificate for %s:%d\n", serverName, entry.Index)
-		}
+		// TODO replace with postgres?
+		//		err = censys.ImportCertificateCTChain(nil, tmp.Raw, serverName, entry.Index, entry.Leaf.TimestampedEntry.Timestamp, parent_print[:], chain_valid)
+		//		if err != nil {
+		//			log.Noticef("Err submitting chain for %s:%d: %s\n", serverName, entry.Index, err)
+		//		} else {
+		//			log.Infof("Success importing certificate for %s:%d\n", serverName, entry.Index)
+		//		}
 	}
 }
 
+// TODO Merge with foundCert
 func foundPrecert(entry *ct.LogEntry, server string) {
 	var parent_fingerprint [32]byte
 	if len(entry.Chain) > 1 {
@@ -216,14 +223,16 @@ func foundPrecert(entry *ct.LogEntry, server string) {
 		}
 		intermediates.AddCert(tmp)
 	}
-	err := censys.ImportCertificateCT(nil, entry.Precert.Raw, serverName, entry.Index, entry.Leaf.TimestampedEntry.Timestamp, parent_fingerprint[:], false)
-	if err != nil {
-		log.Noticef("Err submitting chain for %s:%d: %s\n", serverName, entry.Index, err)
-	} else {
-		log.Infof("Success importing certificate for %s:%d\n", serverName, entry.Index)
-	}
+	// TODO run against hostname list, output to postgres if found
+	//	err := censys.ImportCertificateCT(nil, entry.Precert.Raw, serverName, entry.Index, entry.Leaf.TimestampedEntry.Timestamp, parent_fingerprint[:], false)
+	//	if err != nil {
+	//		log.Noticef("Err submitting chain for %s:%d: %s\n", serverName, entry.Index, err)
+	//	} else {
+	//		log.Infof("Success importing certificate for %s:%d\n", serverName, entry.Index)
+	//	}
 
 	// Submit all chain entries
+	// TODO Do we care?
 	for i, interBytes := range entry.Chain {
 		tmp, err := x509.ParseCertificate(interBytes)
 		if err != nil {
@@ -364,10 +373,12 @@ func main() {
 	initialize(*rootFile, *configFile, *output, *logLevel)
 	exit = *ex
 	brokers := strings.Split(*brokerString, ",")
-	err := censys.ConnectToKafka(brokers, *queue)
-	if err != nil {
-		log.Fatalf("Kafka connection error: %s", err)
-	}
+
+	// TODO Ripout kafka, replace with postgres
+	//	err := censys.ConnectToKafka(brokers, *queue)
+	//	if err != nil {
+	//		log.Fatalf("Kafka connection error: %s", err)
+	//	}
 	config, err := NewConfiguration(*configFile)
 
 	if err != nil {
