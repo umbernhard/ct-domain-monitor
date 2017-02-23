@@ -11,12 +11,11 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
-	"strings"
 	"syscall"
 	"time"
 
 	"github.com/op/go-logging"
-	"github.com/research/censys-ctsync/censys-queuer/protobufs/zsearch_definitions"
+	//	"github.com/research/censys-definitions/zsearch_definitions"
 	"github.com/zmap/zgrab/ztools/zct"
 	"github.com/zmap/zgrab/ztools/zct/scanner"
 	"github.com/zmap/zgrab/ztools/zct/x509"
@@ -48,6 +47,7 @@ var format = logging.MustStringFormatter(
 // TODO interface for adding, removing, and showing hostnames and certs (REST?)
 // TODO postgres
 
+// TODO Pull into own package?
 func (logs Configuration) WriteConfig(filename string) error {
 	f, err := os.Create(filename)
 	if err != nil {
@@ -87,25 +87,11 @@ func NewConfiguration(filename string) (Configuration, error) {
 	return res, nil
 }
 
-// TODO merge with foundPrecert
+// TODO merge with foundPrecert?
 func foundCert(entry *ct.LogEntry, server string) {
-	var parent_fingerprint [32]byte
-	if len(entry.Chain) > 0 {
-		parent_fingerprint = sha256.Sum256(entry.Chain[0])
-		log.Debug("----------------------------------")
-		fpArr := sha256.Sum256(entry.X509Cert.Raw)
-		log.Debug(hex.EncodeToString(fpArr[:]))
-		for i, _ := range entry.Chain {
-			fpArr = sha256.Sum256(entry.Chain[i])
-			log.Debug(hex.EncodeToString(fpArr[:]))
-		}
-		log.Debug("----------------------------------")
-	}
-	serverName := zsearch.CTServer(zsearch.CTServer_value[server])
-	if zsearch.CTServer_value[server] == zsearch.CTServer_value["CT_SERVER_RESERVED"] {
-		log.Warning("Unkown CT server: ", server)
-		return
-	}
+
+	// TODO Do we care about the server?
+	serverName := ""
 	domain := ""
 	if len(entry.X509Cert.DNSNames) > 0 {
 		domain = entry.X509Cert.DNSNames[0]
@@ -144,68 +130,17 @@ func foundCert(entry *ct.LogEntry, server string) {
 			log.Debugf("Invalid leaf chain for %s:%d: %s\n", serverName, entry.Index, err.Error())
 		}
 	}
-	// TODO replace with postgres
-	//	err = censys.ImportCertificateCT(nil, entry.X509Cert.Raw, serverName, entry.Index, entry.Leaf.TimestampedEntry.Timestamp, parent_fingerprint[:], valid)
-	//	if err != nil {
-	//		log.Noticef("Err importing certificate for %s:%d: %s\n", serverName, entry.Index, err)
-	//	} else {
-	//		log.Infof("Success importing certificate for %s:%d\n", serverName, entry.Index)
-	//	}
 
-	// Submit all chain entries
-	for i, interBytes := range entry.Chain {
-		tmp, err := x509.ParseCertificate(interBytes)
-		if err != nil {
-			switch err.(type) {
-			case x509.NonFatalErrors:
-				log.Noticef("Non-Fatal Err parsing chain for %s:%d: %s\n", serverName, entry.Index, err)
-			default:
-				log.Noticef("Fatal Err parsing chain for %s:%d: %s\n", serverName, entry.Index, err)
-				continue
-			}
-		}
-		var parent_print [32]byte
-		if i < len(entry.Chain)-1 {
-			parent_print = sha256.Sum256(entry.Chain[i+1])
-		} else {
-			parent_print = sha256.Sum256(entry.Chain[i])
-		}
-		domain := ""
-		if len(tmp.DNSNames) > 0 {
-			domain = tmp.DNSNames[0]
-		} else if len(tmp.PermittedDNSDomains) > 0 {
-			domain = tmp.PermittedDNSDomains[0]
-		}
-		opts := x509.VerifyOptions{domain, intermediates, roots, time.Now(), false, []x509.ExtKeyUsage{}}
-		chains, err := tmp.Verify(opts)
-		chain_valid := false
-		if err == nil && len(chains) > 0 {
-			chain_valid = true
-			log.Debugf("Valid chain for %s:%d\n", serverName, entry.Index)
-		} else {
-			log.Debugf("Invalid chain for %s:%d\n", serverName, entry.Index)
-		}
-		// TODO replace with postgres?
-		//		err = censys.ImportCertificateCTChain(nil, tmp.Raw, serverName, entry.Index, entry.Leaf.TimestampedEntry.Timestamp, parent_print[:], chain_valid)
-		//		if err != nil {
-		//			log.Noticef("Err submitting chain for %s:%d: %s\n", serverName, entry.Index, err)
-		//		} else {
-		//			log.Infof("Success importing certificate for %s:%d\n", serverName, entry.Index)
-		//		}
+	if valid {
+		// TODO Check against hostname list, submit to postgres if found
 	}
+
 }
 
 // TODO Merge with foundCert
 func foundPrecert(entry *ct.LogEntry, server string) {
-	var parent_fingerprint [32]byte
-	if len(entry.Chain) > 1 {
-		parent_fingerprint = sha256.Sum256(entry.Chain[1])
-	}
-	serverName := zsearch.CTServer(zsearch.CTServer_value[server])
-	if zsearch.CTServer_value[server] == zsearch.CTServer_value["CT_SERVER_RESERVED"] {
-		log.Warning("Unkown CT server: ", server)
-		return
-	}
+	// TODO do we care about the server?
+	serverName := ""
 	intermediates := x509.NewCertPool()
 	for _, interBytes := range entry.Chain {
 		if len(interBytes) < 0 {
@@ -224,51 +159,7 @@ func foundPrecert(entry *ct.LogEntry, server string) {
 		intermediates.AddCert(tmp)
 	}
 	// TODO run against hostname list, output to postgres if found
-	//	err := censys.ImportCertificateCT(nil, entry.Precert.Raw, serverName, entry.Index, entry.Leaf.TimestampedEntry.Timestamp, parent_fingerprint[:], false)
-	//	if err != nil {
-	//		log.Noticef("Err submitting chain for %s:%d: %s\n", serverName, entry.Index, err)
-	//	} else {
-	//		log.Infof("Success importing certificate for %s:%d\n", serverName, entry.Index)
-	//	}
 
-	// Submit all chain entries
-	// TODO Do we care?
-	for i, interBytes := range entry.Chain {
-		tmp, err := x509.ParseCertificate(interBytes)
-		if err != nil {
-			switch err.(type) {
-			case x509.NonFatalErrors:
-				log.Noticef("Non-Fatal Err parsing chain for %s:%d: %s\n", serverName, entry.Index, err)
-			default:
-				log.Noticef("Fatal Err parsing chain for %s:%d: %s\n", serverName, entry.Index, err)
-				continue
-			}
-		}
-		var parent_print [32]byte
-		if i < len(entry.Chain)-1 {
-			parent_print = sha256.Sum256(entry.Chain[i+1])
-		} else {
-			parent_print = sha256.Sum256(entry.Chain[i])
-		}
-		domain := ""
-		if len(tmp.DNSNames) > 0 {
-			domain = tmp.DNSNames[0]
-		} else if len(tmp.PermittedDNSDomains) > 0 {
-			domain = tmp.PermittedDNSDomains[0]
-		}
-		opts := x509.VerifyOptions{domain, intermediates, roots, time.Now(), false, []x509.ExtKeyUsage{}}
-		chains, err := tmp.Verify(opts)
-		chain_valid := false
-		if err == nil && len(chains) > 0 {
-			chain_valid = true
-		}
-		err = censys.ImportCertificateCTChain(nil, tmp.Raw, serverName, entry.Index, entry.Leaf.TimestampedEntry.Timestamp, parent_print[:], chain_valid)
-		if err != nil {
-			log.Noticef("Err submitting chain for %s:%d: %s\n", serverName, entry.Index, err)
-		} else {
-			log.Infof("Success importing certificate for %s:%d\n", serverName, entry.Index)
-		}
-	}
 }
 
 func downloader(logConf LogConfig, logUpdater chan LogConfig, done chan bool, rootFile string, numFetch, numMatch int) {
@@ -357,8 +248,8 @@ func initialize(rootFile, configFile, output string, logLevel int) {
 
 func main() {
 	configFile := flag.String("config", "./config.json", "the configuration file for log servers")
-	brokerString := flag.String("brokers", "127.0.0.1:9092", "a comma separated list of the kafka broker locations")
-	queue := flag.String("topic", "ct_to_zdb", "the kafka topic to place certs in")
+	//brokerString := flag.String("brokers", "127.0.0.1:9092", "a comma separated list of the kafka broker locations")
+	//queue := flag.String("topic", "ct_to_zdb", "the kafka topic to place certs in")
 	output := flag.String("log", "-", "log file")
 	rootFile := flag.String("root", "/etc/nss-root-store.pem", "an nss root store, defaults to etc/nss-root-store.pem")
 	numProcs := flag.Int("proc", 0, "Number of processes to run on")
@@ -372,7 +263,7 @@ func main() {
 	runtime.GOMAXPROCS(*numProcs)
 	initialize(*rootFile, *configFile, *output, *logLevel)
 	exit = *ex
-	brokers := strings.Split(*brokerString, ",")
+	//brokers := strings.Split(*brokerString, ",")
 
 	// TODO Ripout kafka, replace with postgres
 	//	err := censys.ConnectToKafka(brokers, *queue)
