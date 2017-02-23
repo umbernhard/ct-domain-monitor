@@ -3,7 +3,7 @@ sudo: false
 go:
     - tip
 before_install:
-    - go get github.com/mattn/goveralls
+    - go install github.com/mattn/goveralls
 before_script:
 notifications:
     email:
