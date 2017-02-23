@@ -10,10 +10,3 @@ func TestTest(t *testing.T) {
 	}
 	return
 }
-
-func TestFail(t *testing.T) {
-	if 1 == 1 {
-		t.Errorf("Something has gone horribly wrong")
-	}
-	return
-}
