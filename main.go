@@ -22,12 +22,13 @@ import (
 )
 
 type LogConfig struct {
-	Name         string `json:"name"`
-	Url          string `json:"url"`
-	LastIndex    int64  `json:"index"`
-	BucketSize   int64  `json:"window"`
-	UpdatePeriod int64  `json:"limit"`
-	MaximumIndex int64  `json:"stop"`
+	Name         string   `json:"name"`
+	Url          string   `json:"url"`
+	LastIndex    int64    `json:"index"`
+	BucketSize   int64    `json:"window"`
+	UpdatePeriod int64    `json:"limit"`
+	MaximumIndex int64    `json:"stop"`
+	HostNames    []string `json:"hostnames`
 }
 
 type Configuration []LogConfig
@@ -35,6 +36,8 @@ type Configuration []LogConfig
 var exit bool
 var roots *x509.CertPool
 var log = logging.MustGetLogger("")
+
+var hostnames map[string][]string
 
 // Example format string. Everything except the message has a custom color
 // which is dependent on the log level. Many fields have a custom output
@@ -98,6 +101,19 @@ func foundCert(entry *ct.LogEntry, server string) {
 	} else if len(entry.X509Cert.PermittedDNSDomains) > 0 {
 		domain = entry.X509Cert.PermittedDNSDomains[0]
 	}
+
+	flag := false
+	for _, hostname := range hostnames[server] {
+		if domain == hostname {
+			flag = true
+		}
+	}
+
+	// If we don't care about this cert, forget about it
+	if !flag {
+		return
+	}
+
 	intermediates := x509.NewCertPool()
 	for _, interBytes := range entry.Chain {
 		if len(interBytes) < 0 {
@@ -132,14 +148,33 @@ func foundCert(entry *ct.LogEntry, server string) {
 	}
 
 	if valid {
-		// TODO Check against hostname list, submit to postgres if found
+		// TODO submit to postgres
 	}
 
 }
 
 // TODO Merge with foundCert
 func foundPrecert(entry *ct.LogEntry, server string) {
-	// TODO do we care about the server?
+	precert := entry.Precert.TBSCertificate
+	domain := ""
+	if len(precert.DNSNames) > 0 {
+		domain = precert.DNSNames[0]
+	} else if len(precert.PermittedDNSDomains) > 0 {
+		domain = precert.PermittedDNSDomains[0]
+	}
+
+	flag := false
+	for _, hostname := range hostnames[server] {
+		if domain == hostname {
+			flag = true
+		}
+	}
+
+	// If we don't care about this cert, forget about it
+	if !flag {
+		return
+	}
+
 	serverName := ""
 	intermediates := x509.NewCertPool()
 	for _, interBytes := range entry.Chain {
@@ -158,7 +193,7 @@ func foundPrecert(entry *ct.LogEntry, server string) {
 		}
 		intermediates.AddCert(tmp)
 	}
-	// TODO run against hostname list, output to postgres if found
+	//  output to postgres if found
 
 }
 
@@ -248,8 +283,6 @@ func initialize(rootFile, configFile, output string, logLevel int) {
 
 func main() {
 	configFile := flag.String("config", "./config.json", "the configuration file for log servers")
-	//brokerString := flag.String("brokers", "127.0.0.1:9092", "a comma separated list of the kafka broker locations")
-	//queue := flag.String("topic", "ct_to_zdb", "the kafka topic to place certs in")
 	output := flag.String("log", "-", "log file")
 	rootFile := flag.String("root", "/etc/nss-root-store.pem", "an nss root store, defaults to etc/nss-root-store.pem")
 	numProcs := flag.Int("proc", 0, "Number of processes to run on")
@@ -263,15 +296,12 @@ func main() {
 	runtime.GOMAXPROCS(*numProcs)
 	initialize(*rootFile, *configFile, *output, *logLevel)
 	exit = *ex
-	//brokers := strings.Split(*brokerString, ",")
 
-	// TODO Ripout kafka, replace with postgres
-	//	err := censys.ConnectToKafka(brokers, *queue)
-	//	if err != nil {
-	//		log.Fatalf("Kafka connection error: %s", err)
-	//	}
 	config, err := NewConfiguration(*configFile)
 
+	for _, conf := range config {
+		hostnames[conf.Name] = conf.HostNames
+	}
 	if err != nil {
 		log.Fatalf("Configuration error: %s", err)
 	}
