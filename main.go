@@ -90,16 +90,14 @@ func NewConfiguration(filename string) (Configuration, error) {
 	return res, nil
 }
 
-// TODO merge with foundPrecert?
-func foundCert(entry *ct.LogEntry, server string) {
-
+func processCert(entry *ct.LogEntry, cert *x509.Certificate, precert bool, server string) {
 	// TODO Do we care about the server?
 	serverName := ""
 	domain := ""
-	if len(entry.X509Cert.DNSNames) > 0 {
-		domain = entry.X509Cert.DNSNames[0]
-	} else if len(entry.X509Cert.PermittedDNSDomains) > 0 {
-		domain = entry.X509Cert.PermittedDNSDomains[0]
+	if len(cert.DNSNames) > 0 {
+		domain = cert.DNSNames[0]
+	} else if len(cert.PermittedDNSDomains) > 0 {
+		domain = cert.PermittedDNSDomains[0]
 	}
 
 	flag := false
@@ -134,7 +132,7 @@ func foundCert(entry *ct.LogEntry, server string) {
 		log.Debugf("Added intermediate: %s\n", hex.EncodeToString(fpArr[:]))
 	}
 	opts := x509.VerifyOptions{domain, intermediates, roots, time.Now(), false, []x509.ExtKeyUsage{}}
-	chains, err := entry.X509Cert.Verify(opts)
+	chains, err := cert.Verify(opts)
 	valid := false
 	if err == nil && len(chains) > 0 {
 		valid = true
@@ -147,54 +145,21 @@ func foundCert(entry *ct.LogEntry, server string) {
 		}
 	}
 
-	if valid {
+	log.Criticalf("Cert! %s", domain)
+	// XOR valid and precert, since we only want valid certs and also precerts
+	if valid != precert {
 		// TODO submit to postgres
+		log.Fatalf("Valid Cert! %s", domain)
 	}
-
 }
 
-// TODO Merge with foundCert
+func foundCert(entry *ct.LogEntry, server string) {
+	processCert(entry, entry.X509Cert, false, server)
+}
+
 func foundPrecert(entry *ct.LogEntry, server string) {
 	precert := entry.Precert.TBSCertificate
-	domain := ""
-	if len(precert.DNSNames) > 0 {
-		domain = precert.DNSNames[0]
-	} else if len(precert.PermittedDNSDomains) > 0 {
-		domain = precert.PermittedDNSDomains[0]
-	}
-
-	flag := false
-	for _, hostname := range hostnames[server] {
-		if domain == hostname {
-			flag = true
-		}
-	}
-
-	// If we don't care about this cert, forget about it
-	if !flag {
-		return
-	}
-
-	serverName := ""
-	intermediates := x509.NewCertPool()
-	for _, interBytes := range entry.Chain {
-		if len(interBytes) < 0 {
-			continue
-		}
-		tmp, err := x509.ParseCertificate(interBytes)
-		if err != nil {
-			log.Noticef("Err parsing chain for %s:%d: %s\n", serverName, entry.Index, err)
-			switch err.(type) {
-			case x509.UnhandledCriticalExtension:
-				block := pem.Block{"TRUSTED CERTIFICATE", nil, interBytes}
-				log.Debug(string(pem.EncodeToMemory(&block)))
-			}
-			continue
-		}
-		intermediates.AddCert(tmp)
-	}
-	//  output to postgres if found
-
+	processCert(entry, &precert, false, server)
 }
 
 func downloader(logConf LogConfig, logUpdater chan LogConfig, done chan bool, rootFile string, numFetch, numMatch int) {
@@ -298,6 +263,8 @@ func main() {
 	exit = *ex
 
 	config, err := NewConfiguration(*configFile)
+
+	hostnames = make(map[string][]string)
 
 	for _, conf := range config {
 		hostnames[conf.Name] = conf.HostNames
