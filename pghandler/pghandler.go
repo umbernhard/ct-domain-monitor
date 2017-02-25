@@ -12,7 +12,8 @@ var db *sql.DB
 func Open(user, dbname string) error {
 
 	var err error
-	db, err = sql.Open("postgres", "user="+user+" dbname="+dbname+" sslmode=verify-full")
+	// TODO Enable SSL?
+	db, err = sql.Open("postgres", "user="+user+" dbname="+dbname+" sslmode=disable")
 	if err != nil {
 		return err
 	}
@@ -28,7 +29,7 @@ func Close() error {
 
 // Submit Insert a domain, cert pair to the db
 func Submit(server, domain string, cert []byte) error {
-	stmt, err := db.Prepare("INSERT INTO " + server + "(name) VALUES($1, $2)")
+	stmt, err := db.Prepare("INSERT INTO " + server + "(domain,cert_raw) VALUES($1, $2)")
 	if err != nil {
 		return err
 	}
