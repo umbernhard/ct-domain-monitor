@@ -27,13 +27,50 @@ func Close() error {
 
 }
 
-// Submit Insert a domain, cert pair to the db
+// queries for given domain, cert. Used for testing
+func present(server, domain string, cert []byte) (bool, error) {
+	rows, err := db.Query("select * from "+server+" where domain=$1 and cert_raw=$2", domain, cert)
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+	return rows.Next(), nil
+
+}
+
+// Submit Insert a domain, cert pair to the db table corresponding to CT log server
 func Submit(server, domain string, cert []byte) error {
-	stmt, err := db.Prepare("INSERT INTO " + server + "(domain,cert_raw) VALUES($1, $2)")
+	stmt, err := db.Prepare("INSERT INTO " + server + " (domain,cert_raw) VALUES($1, $2)")
 	if err != nil {
 		return err
 	}
 	_, err = stmt.Exec(domain, cert)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Remove all instances of cert for the domain in the db table corresponding to CT log server
+func RemoveCertFromDomain(server, domain string, cert []byte) error {
+	stmt, err := db.Prepare("DELETE FROM " + server + " WHERE domain=$1 AND cert_raw=$2")
+	if err != nil {
+		return err
+	}
+	_, err = stmt.Exec(domain, cert)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Remove all certs for domain in the db table corresponding to CT log server
+func RemoveDomain(server, domain string) error {
+	stmt, err := db.Prepare("DELETE FROM " + server + " WHERE domain=$1")
+	if err != nil {
+		return err
+	}
+	_, err = stmt.Exec(domain)
 	if err != nil {
 		return err
 	}
