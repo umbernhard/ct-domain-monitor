@@ -11,16 +11,16 @@ type Configuration []LogConfig
 
 // struct mirroring the config file schema
 type LogConfig struct {
-	Name         string   `json:"name"`
-	Url          string   `json:"url"`
-	LastIndex    int64    `json:"index"`
-	BucketSize   int64    `json:"window"`
-	UpdatePeriod int64    `json:"limit"`
-	MaximumIndex int64    `json:"stop"`
-	HostNames    []string `json:"hostnames`
+	Name         string   `json"name"`
+	Url          string   `json"url"`
+	LastIndex    int64    `json"index"`
+	BucketSize   int64    `json"window"`
+	UpdatePeriod int64    `json"limit"`
+	MaximumIndex int64    `json"stop"`
+	HostNames    []string `json"hostnames`
 }
 
-// WriteConfig: dump the configuration objects to the relevant file
+// WriteConfig dump the configuration objects to the relevant file
 func (logs Configuration) WriteConfig(filename string) error {
 	f, err := os.Create(filename)
 	if err != nil {
@@ -38,7 +38,7 @@ func (logs Configuration) WriteConfig(filename string) error {
 	return nil
 }
 
-// NewConfiguration: Create a new configuration object from a given file
+// NewConfiguration Create a new configuration object from a given file
 func NewConfiguration(filename string) (Configuration, error) {
 	res := Configuration{}
 	file, err := os.Open(filename)
@@ -55,7 +55,7 @@ func NewConfiguration(filename string) (Configuration, error) {
 		json.Unmarshal([]byte(scanner.Text()), &parsed)
 		res = append(res, parsed)
 	}
-	if err := scanner.Err(); err != nil {
+	if err = scanner.Err(); err != nil {
 		return nil, err
 	}
 	return res, nil
