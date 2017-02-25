@@ -9,8 +9,11 @@ import (
 )
 
 var (
-	ErrTreeHead            = errors.New("Error to get tree head")
-	ErrLogEntries          = errors.New("Error ...")
+	// ErrTreeHead if we can't get the tree head
+	ErrTreeHead = errors.New("Error to get tree head")
+	// ErrLogEntries if there's an issue getting log entries
+	ErrLogEntries = errors.New("Error ...")
+	// ErrCertificateNotFound if we cannot find a certificate
 	ErrCertificateNotFound = errors.New("Error certificate not found")
 )
 
@@ -47,7 +50,7 @@ func leafCertificate(logEntry ct.LogEntry) ([]byte, error) {
 	return logEntry.Leaf.TimestampedEntry.PrecertEntry.TBSCertificate, nil
 }
 
-// New: Create a new connection to server <uri>, downloading <bucketSize> entries at a time
+// New Create a new connection to server <uri>, downloading <bucketSize> entries at a time
 func New(uri string, bucketSize int64) *LogServerConnection {
 	var c LogServerConnection
 	var err error
@@ -73,7 +76,7 @@ func New(uri string, bucketSize int64) *LogServerConnection {
 	return &c
 }
 
-// NewWithOffset: Same as New, but starts at entry <offset> in the log
+// NewWithOffset Same as New, but starts at entry <offset> in the log
 func NewWithOffset(uri string, bucketSize int64, start int64) *LogServerConnection {
 	c := New(uri, bucketSize)
 
@@ -93,7 +96,7 @@ func (c *LogServerConnection) slideBucket() {
 	c.end += c.bucketSize
 }
 
-// GetLogEntries: get one window's worth of entries, slide window
+// GetLogEntries get one window's worth of entries, slide window
 func (c *LogServerConnection) GetLogEntries() ([]ct.LogEntry, error) {
 	if c.end >= c.treeSize {
 		c.treeSize -= 1

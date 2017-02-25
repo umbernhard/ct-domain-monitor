@@ -6,10 +6,7 @@ import (
 	"os"
 )
 
-// "configuration", list of configs for each log we pull from
-type Configuration []LogConfig
-
-// struct mirroring the config file schema
+// LogConfig struct mirroring the config file schema
 type LogConfig struct {
 	Name         string   `json"name"`
 	Url          string   `json"url"`
@@ -19,6 +16,9 @@ type LogConfig struct {
 	MaximumIndex int64    `json"stop"`
 	HostNames    []string `json"hostnames`
 }
+
+// Configuration "configuration", list of configs for each log we pull from
+type Configuration []LogConfig
 
 // WriteConfig dump the configuration objects to the relevant file
 func (logs Configuration) WriteConfig(filename string) error {
