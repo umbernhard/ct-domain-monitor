@@ -17,7 +17,7 @@ var (
 	ErrCertificateNotFound = errors.New("Error certificate not found")
 )
 
-// Struct containing the CT log connection and relevant data
+// LogServerConnection Struct containing the CT log connection and relevant data
 type LogServerConnection struct {
 	logClient  *client.LogClient
 	outputFile *os.File
