@@ -95,6 +95,10 @@ func main() {
 	exit = *ex
 
 	err := postgres.Open(*user, *dbname)
+	if err != nil {
+		log.Fatalf("Couldn't establish connection to databse: %s", err)
+	}
+	defer postgres.Close()
 
 	config, err := NewConfiguration(*configFile)
 

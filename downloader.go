@@ -70,9 +70,10 @@ func processCert(entry *ct.LogEntry, cert *x509.Certificate, precert bool, serve
 	log.Criticalf("Cert! %s", domain)
 	// XOR valid and precert, since we only want valid certs and also precerts
 	if valid != precert {
-		// TODO submit to postgres
-		postgres.Submit(server, domain, cert.Raw)
-		log.Fatalf("Valid Cert! %s", domain)
+		err = postgres.Submit(server, domain, cert.Raw)
+		if err != nil {
+			log.Debugf("Could not insert to database: %s", err)
+		}
 	}
 }
 
