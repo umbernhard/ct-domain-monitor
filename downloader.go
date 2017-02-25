@@ -6,7 +6,7 @@ import (
 	"encoding/pem"
 	"time"
 
-	"github.com/umbernhard/ct-domain-monitor/pghandler"
+	"github.com/umbernhard/ct-domain-monitor/pqhandler"
 	"github.com/zmap/zgrab/ztools/zct"
 	"github.com/zmap/zgrab/ztools/zct/scanner"
 	"github.com/zmap/zgrab/ztools/zct/x509"
