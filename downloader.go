@@ -6,6 +6,7 @@ import (
 	"encoding/pem"
 	"time"
 
+	"github.com/ct-domain-monitor/pghandler"
 	"github.com/zmap/zgrab/ztools/zct"
 	"github.com/zmap/zgrab/ztools/zct/scanner"
 	"github.com/zmap/zgrab/ztools/zct/x509"
@@ -70,6 +71,7 @@ func processCert(entry *ct.LogEntry, cert *x509.Certificate, precert bool, serve
 	// XOR valid and precert, since we only want valid certs and also precerts
 	if valid != precert {
 		// TODO submit to postgres
+		postgres.Submit(server, domain, cert.Raw)
 		log.Fatalf("Valid Cert! %s", domain)
 	}
 }

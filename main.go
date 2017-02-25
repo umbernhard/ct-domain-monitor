@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/op/go-logging"
+	"github.com/umbernhard/ct-domain-monitor/pghandler"
 	"github.com/zmap/zgrab/ztools/zct/x509"
 )
 
@@ -83,6 +84,8 @@ func main() {
 	numFetch := flag.Int("fetcher", 1, "Number of workers assigned to fetch certificates from each server")
 	numMatch := flag.Int("matcher", 1, "Number of workers assigned to parse certs from each server")
 	logLevel := flag.Int("log-level", 0, "log level")
+	user := flag.String("user", "monitor", "Postgres user")
+	dbname := flag.String("dbname", "ctdomainmonitor", "Postgres db name")
 	ex := flag.Bool("exit", false, "Tells the program to exit once it has gotten the most recent certificates")
 	flag.Parse()
 
@@ -90,6 +93,8 @@ func main() {
 	runtime.GOMAXPROCS(*numProcs)
 	initialize(*rootFile, *configFile, *output, *logLevel)
 	exit = *ex
+
+	err := postgres.Open(user, dbname)
 
 	config, err := NewConfiguration(*configFile)
 
