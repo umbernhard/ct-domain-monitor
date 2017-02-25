@@ -6,7 +6,8 @@ service:
     - postgresql
 before_install:
 before_script:
-    - psql -c 'create database test;' -U test
+    - psql -c 'create user test;' -U postgres
+    - psql -c 'create database test;' 
     - psql -c 'create table test (domain varchar (253) NOT NULL,cert_raw bytea NOT NULL);' -U test 
 notifications:
     email:
