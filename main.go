@@ -13,8 +13,6 @@ import (
 	"github.com/zmap/zgrab/ztools/zct/x509"
 )
 
-type Configuration []LogConfig
-
 var exit bool
 var roots *x509.CertPool
 var log = logging.MustGetLogger("")

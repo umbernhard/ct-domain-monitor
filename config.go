@@ -6,6 +6,10 @@ import (
 	"os"
 )
 
+// "configuration", list of configs for each log we pull from
+type Configuration []LogConfig
+
+// struct mirroring the config file schema
 type LogConfig struct {
 	Name         string   `json:"name"`
 	Url          string   `json:"url"`
@@ -16,7 +20,7 @@ type LogConfig struct {
 	HostNames    []string `json:"hostnames`
 }
 
-// TODO Pull into own package?
+// WriteConfig: dump the configuration objects to the relevant file
 func (logs Configuration) WriteConfig(filename string) error {
 	f, err := os.Create(filename)
 	if err != nil {
@@ -34,6 +38,7 @@ func (logs Configuration) WriteConfig(filename string) error {
 	return nil
 }
 
+// NewConfiguration: Create a new configuration object from a given file
 func NewConfiguration(filename string) (Configuration, error) {
 	res := Configuration{}
 	file, err := os.Open(filename)

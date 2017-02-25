@@ -9,11 +9,12 @@ import (
 )
 
 var (
-	TreeHeadError            = errors.New("Error to get tree head")
-	LogEntriesError          = errors.New("Error ...")
-	CertificateNotFoundError = errors.New("Error certificate not found")
+	ErrTreeHead            = errors.New("Error to get tree head")
+	ErrLogEntries          = errors.New("Error ...")
+	ErrCertificateNotFound = errors.New("Error certificate not found")
 )
 
+// Struct containing the CT log connection and relevant data
 type LogServerConnection struct {
 	logClient  *client.LogClient
 	outputFile *os.File
@@ -34,19 +35,19 @@ func merkleTreeSize(logClient *client.LogClient) (uint64, error) {
 func leafCertificate(logEntry ct.LogEntry) ([]byte, error) {
 
 	if logEntry.Leaf.LeafType != ct.TimestampedEntryLeafType {
-		return nil, CertificateNotFoundError
+		return nil, ErrCertificateNotFound
 	}
 	if logEntry.Leaf.TimestampedEntry.EntryType != ct.X509LogEntryType && logEntry.Leaf.TimestampedEntry.EntryType != ct.PrecertLogEntryType {
-		return nil, CertificateNotFoundError
+		return nil, ErrCertificateNotFound
 	}
 
 	if logEntry.Leaf.TimestampedEntry.EntryType == ct.X509LogEntryType {
 		return logEntry.Leaf.TimestampedEntry.X509Entry, nil
-	} else {
-		return logEntry.Leaf.TimestampedEntry.PrecertEntry.TBSCertificate, nil
 	}
+	return logEntry.Leaf.TimestampedEntry.PrecertEntry.TBSCertificate, nil
 }
 
+// New: Create a new connection to server <uri>, downloading <bucketSize> entries at a time
 func New(uri string, bucketSize int64) *LogServerConnection {
 	var c LogServerConnection
 	var err error
@@ -72,6 +73,7 @@ func New(uri string, bucketSize int64) *LogServerConnection {
 	return &c
 }
 
+// NewWithOffset: Same as New, but starts at entry <offset> in the log
 func NewWithOffset(uri string, bucketSize int64, start int64) *LogServerConnection {
 	c := New(uri, bucketSize)
 
@@ -91,6 +93,7 @@ func (c *LogServerConnection) slideBucket() {
 	c.end += c.bucketSize
 }
 
+// GetLogEntries: get one window's worth of entries, slide window
 func (c *LogServerConnection) GetLogEntries() ([]ct.LogEntry, error) {
 	if c.end >= c.treeSize {
 		c.treeSize -= 1

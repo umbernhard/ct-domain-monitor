@@ -5,7 +5,7 @@ import (
 )
 
 var (
-	test_tube = "https://ct.googleapis.com/testtube"
+	testtube = "https://ct.googleapis.com/testtube"
 )
 
 func testLSC(lSC *LogServerConnection, bucketSize int64, offset int64, t *testing.T) {
@@ -26,7 +26,7 @@ func testLSC(lSC *LogServerConnection, bucketSize int64, offset int64, t *testin
 }
 
 func TestNew(t *testing.T) {
-	uri := test_tube
+	uri := testtube
 	bucketSize := int64(1)
 
 	lSC := New(uri, bucketSize)
@@ -36,7 +36,7 @@ func TestNew(t *testing.T) {
 }
 
 func TestNewWithOffset0(t *testing.T) {
-	uri := test_tube
+	uri := testtube
 	bucketSize := int64(1)
 	offset := int64(0)
 
@@ -50,7 +50,7 @@ func TestNewWithOffset1(t *testing.T) {
 	bucketSize := int64(1)
 	offset := int64(1)
 
-	lSC := NewWithOffset(test_tube, bucketSize, offset)
+	lSC := NewWithOffset(testtube, bucketSize, offset)
 
 	testLSC(lSC, bucketSize, offset, t)
 
@@ -59,7 +59,7 @@ func TestNewWithOffset1(t *testing.T) {
 func TestSlideBucket(t *testing.T) {
 	bucketSize := int64(10)
 
-	lSC := New(test_tube, bucketSize)
+	lSC := New(testtube, bucketSize)
 
 	lSC.slideBucket()
 
@@ -72,7 +72,7 @@ func TestSlideBucket(t *testing.T) {
 func TestGetLogEntries(t *testing.T) {
 	bucketSize := int64(10)
 
-	lSC := New(test_tube, bucketSize)
+	lSC := New(testtube, bucketSize)
 
 	entries, err := lSC.GetLogEntries()
 
