@@ -8,13 +8,13 @@ import (
 
 // LogConfig struct mirroring the config file schema
 type LogConfig struct {
-	Name         string   `json"name"`
-	Url          string   `json"url"`
-	LastIndex    int64    `json"index"`
-	BucketSize   int64    `json"window"`
-	UpdatePeriod int64    `json"limit"`
-	MaximumIndex int64    `json"stop"`
-	HostNames    []string `json"hostnames`
+	Name         string   `json:"name"`
+	Url          string   `json:"url"`
+	LastIndex    int64    `json:"index"`
+	BucketSize   int64    `json:"window"`
+	UpdatePeriod int64    `json:"limit"`
+	MaximumIndex int64    `json:"stop"`
+	HostNames    []string `json:"hostnames`
 }
 
 // Configuration "configuration", list of configs for each log we pull from
