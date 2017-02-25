@@ -94,7 +94,7 @@ func main() {
 	initialize(*rootFile, *configFile, *output, *logLevel)
 	exit = *ex
 
-	err := postgres.Open(user, dbname)
+	err := postgres.Open(*user, *dbname)
 
 	config, err := NewConfiguration(*configFile)
 
