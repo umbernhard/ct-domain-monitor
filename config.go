@@ -55,7 +55,7 @@ func NewConfiguration(filename string) (Configuration, error) {
 		json.Unmarshal([]byte(scanner.Text()), &parsed)
 		res = append(res, parsed)
 	}
-	if err = scanner.Err(); err != nil {
+	if err := scanner.Err(); err != nil {
 		return nil, err
 	}
 	return res, nil
