@@ -3,11 +3,18 @@ package postgres
 import (
 	"bytes"
 	"encoding/pem"
+	"fmt"
 	"github.com/zmap/zgrab/ztools/x509"
 	"io"
 	"os"
 	"testing"
 )
+
+const tableCreationQuery = `CREATE TABLE IF NOT EXISTS test
+(
+	domain varchar (253) NOT NULL,
+	cert_raw bytea NOT NULL
+)`
 
 func TestOpen(t *testing.T) {
 	err := Open("test", "test")
@@ -143,4 +150,26 @@ func TestRemoveDomain(t *testing.T) {
 	}
 
 	Close()
+}
+
+func TestMain(m *testing.M) {
+	err := Open("test", "test")
+
+	if err != nil {
+		fmt.Printf("Couldn't open DB: %s", err)
+		os.Exit(1)
+	}
+
+	defer Close()
+	if err := ensureTableExists(tableCreationQuery); err != nil {
+		fmt.Printf("Couldn't ensure table: %s", err)
+		os.Exit(1)
+	}
+
+	code := m.Run()
+
+	exec("DELETE FROM test")
+
+	os.Exit(code)
+
 }

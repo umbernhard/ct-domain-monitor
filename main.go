@@ -74,7 +74,8 @@ func initialize(rootFile, configFile, output string, logLevel int) {
 	}()
 }
 
-func main() {
+func Run() {
+
 	configFile := flag.String("config", "./config.json", "the configuration file for log servers")
 	output := flag.String("log", "-", "log file")
 	rootFile := flag.String("root", "/etc/nss-root-store.pem", "an nss root store, defaults to etc/nss-root-store.pem")
@@ -139,4 +140,9 @@ func main() {
 			}
 		}
 	}
+}
+
+func main() {
+
+	Run()
 }

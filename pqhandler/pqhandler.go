@@ -8,6 +8,13 @@ import (
 
 var db *sql.DB
 
+func ensureTableExists(tableCreationQuery string) error {
+	if _, err := db.Exec(tableCreationQuery); err != nil {
+		return err
+	}
+	return nil
+}
+
 // Open  Establish a connection to the database
 func Open(user, dbname string) error {
 
@@ -36,6 +43,12 @@ func present(server, domain string, cert []byte) (bool, error) {
 	defer rows.Close()
 	return rows.Next(), nil
 
+}
+
+// runs arbitrary query for testing purposes
+func exec(query string) error {
+	_, err := db.Exec(query)
+	return err
 }
 
 // Submit Insert a domain, cert pair to the db table corresponding to CT log server
