@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -13,7 +12,7 @@ func AddDomainEndpoint(w http.ResponseWriter, req *http.Request) {
 	// restart the CT log crawler using the channel
 	domain := mux.Vars(req)["domain"]
 
-	log.Fatalf("Not implemented %s", params)
+	log.Fatalf("Not implemented %s", domain)
 }
 
 // GetDomainsEndpoint returns all monitored domains
