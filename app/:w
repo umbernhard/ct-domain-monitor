@@ -1,0 +1,197 @@
+// main_test.go
+
+package main_test
+
+import (
+	"bytes"
+	"encoding/json"
+	"log"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"testing"
+
+	"github.com/umbernhard/ct-domain-monitor/app"
+)
+
+var a main.Monitor
+
+const tableCreationQuery = `CREATE TABLE IF NOT EXISTS domains
+(
+	domain varchar (253) NOT NULL,
+	cert_pem varchar NOT NULL
+)`
+
+const testPEM = `-----BEGIN CERTIFICATE-----
+MIIFWTCCBEGgAwIBAgIQKcAeK/vRrCIRYJslHLtUXjANBgkqhkiG9w0BAQsFADCB
+kDELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3RlcjEQMA4G
+A1UEBxMHU2FsZm9yZDEaMBgGA1UEChMRQ09NT0RPIENBIExpbWl0ZWQxNjA0BgNV
+BAMTLUNPTU9ETyBSU0EgRG9tYWluIFZhbGlkYXRpb24gU2VjdXJlIFNlcnZlciBD
+QTAeFw0xNjA5MjEwMDAwMDBaFw0xNzA5MjEyMzU5NTlaMHUxITAfBgNVBAsTGERv
+bWFpbiBDb250cm9sIFZhbGlkYXRlZDEpMCcGA1UECxMgSG9zdGVkIGJ5IEhPU1RJ
+TkcgU0VSVklDRVMsIElOQy4xFDASBgNVBAsTC1Bvc2l0aXZlU1NMMQ8wDQYDVQQD
+EwZ3d3cuc2IwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQChpclY5XTZ
+dXUYUqL4nyztzYaLrsLGnUchfNtmP7y74hAVSTW2Vm755IjDvdw+4NK3JUlnWhh7
+lzfapK+ABc97HQb1PNqWuai+p4vcimloqLJYYzIVGUwKnv+bmMudB5DilGWkhqca
+k8v4Ro5Wsddd5RwxHl0A/sKRCiNnxhnQ+uHAzuahqw491mKruIDQc5t/lMAt1Sm/
+OO2cb+EWolErsM9y41cnsG432geVNJh0IUlOzTSo6REO9b7YfAdEFSMdgim5oVRH
+PqeVXnwHhTasYD0KLLaSO+QEMvXjFxk+JyvG8xkHCqeKGtoEW1yG1QKDFhfVDzRp
+AOyZIDU02B8rAgMBAAGjggHHMIIBwzAfBgNVHSMEGDAWgBSQr2o6lFoL2JDqElZz
+30O0Oija5zAdBgNVHQ4EFgQUW0j6ltmsCpXeKOISvLz6QToAhUQwDgYDVR0PAQH/
+BAQDAgWgMAwGA1UdEwEB/wQCMAAwHQYDVR0lBBYwFAYIKwYBBQUHAwEGCCsGAQUF
+BwMCME8GA1UdIARIMEYwOgYLKwYBBAGyMQECAgcwKzApBggrBgEFBQcCARYdaHR0
+cHM6Ly9zZWN1cmUuY29tb2RvLmNvbS9DUFMwCAYGZ4EMAQIBMFQGA1UdHwRNMEsw
+SaBHoEWGQ2h0dHA6Ly9jcmwuY29tb2RvY2EuY29tL0NPTU9ET1JTQURvbWFpblZh
+bGlkYXRpb25TZWN1cmVTZXJ2ZXJDQS5jcmwwgYUGCCsGAQUFBwEBBHkwdzBPBggr
+BgEFBQcwAoZDaHR0cDovL2NydC5jb21vZG9jYS5jb20vQ09NT0RPUlNBRG9tYWlu
+VmFsaWRhdGlvblNlY3VyZVNlcnZlckNBLmNydDAkBggrBgEFBQcwAYYYaHR0cDov
+L29jc3AuY29tb2RvY2EuY29tMBUGA1UdEQQOMAyCBnd3dy5zYoICc2IwDQYJKoZI
+hvcNAQELBQADggEBACj7cCdFWw0Rg6fnTbRlnbyuoEAuT4YnFNTw5H2YEtyVCLLL
+tZL2QlWPCsGkwyIrsX3PqYEXV95IMa9WQ0Vg+t5m+xFU9T3t9Uv4GWwyYGu9IvtS
+5nwf8yfDQjqOMKGV7tHyd79VJq9QIy0UjpRxVNDv7fDEg99G9JB9IlGgWgUIOYXi
+q6d428UL3qHF+uSABYR2sqajou0dJzUJD0UiP0vNLhbApwiMBFis/XTPtta/Ky+K
+cXOEgc0BsY/gZw6TCiBLUP6DQcPGH6dRyzTY/1O676G0xr8171+ZAP+ZJb/W8xqZ
+/YUAnq2guwMhSScugjWOG/9H2ITkiWhVs6iUFjU=
+-----END CERTIFICATE-----`
+
+func ensureTableExists() {
+	if _, err := a.DB.Exec(tableCreationQuery); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func clearTable() {
+	a.DB.Exec("DELETE FROM domains")
+}
+
+func executeRequest(req *http.Request) *httptest.ResponseRecorder {
+	rr := httptest.NewRecorder()
+	a.Router.ServeHTTP(rr, req)
+
+	return rr
+}
+
+func checkResponseCode(t *testing.T, expected, actual int) {
+	if expected != actual {
+		t.Errorf("Expected response code %d. Got %d\n", expected, actual)
+	}
+}
+
+func addRecords(count int) {
+	if count < 1 {
+		count = 1
+	}
+
+	for i := 0; i < count; i++ {
+		a.DB.Exec("INSERT INTO products(domain, price) VALUES($1, $2)", strconv.Itoa(i)+".com", testPEM)
+	}
+}
+
+func TestEmptyTable(t *testing.T) {
+	clearTable()
+
+	req, _ := http.NewRequest("GET", "/domains", nil)
+	response := executeRequest(req)
+
+	checkResponseCode(t, http.StatusOK, response.Code)
+
+	if body := response.Body.String(); body != "[]" {
+		t.Errorf("Expected an empty array. Got %s", body)
+	}
+}
+
+func TestGetNonExistentRecord(t *testing.T) {
+	clearTable()
+
+	req, _ := http.NewRequest("GET", "/domain/0x21.org", nil)
+	response := executeRequest(req)
+
+	checkResponseCode(t, http.StatusNotFound, response.Code)
+
+	var m map[string]string
+	json.Unmarshal(response.Body.Bytes(), &m)
+	if m["error"] != "Product not found" {
+		t.Errorf("Expected the 'error' key of the response to be set to 'Product not found'. Got '%s'", m["error"])
+	}
+}
+
+func TestAddRecord(t *testing.T) {
+	clearTable()
+
+	payload := []byte(`{"domain":"test.com","cert_pem":"` + testPEM + `"}`)
+
+	req, _ := http.NewRequest("POST", "/domain", bytes.NewBuffer(payload))
+	response := executeRequest(req)
+
+	checkResponseCode(t, http.StatusCreated, response.Code)
+
+	var m map[string]interface{}
+	json.Unmarshal(response.Body.Bytes(), &m)
+
+	if m["domain"] != "test.com" {
+		t.Errorf("Expected product name to be 'test.com'. Got '%v'", m["domain"])
+	}
+
+	if m["cert_pem"] != testPEM {
+		t.Errorf("Expected product price to be '"+testPEM+"'. Got '%v'", m["cert_pem"])
+	}
+
+}
+
+func TestGetRecord(t *testing.T) {
+	clearTable()
+	addRecords(1)
+
+	req, _ := http.NewRequest("GET", "/domain/1.com", nil)
+	response := executeRequest(req)
+
+	checkResponseCode(t, http.StatusOK, response.Code)
+}
+
+func TestUpdateDomain(t *testing.T) {
+	clearTable()
+	addRecords(1)
+
+	req, _ := http.NewRequest("GET", "/product/1", nil)
+	response := executeRequest(req)
+	var originalProduct map[string]interface{}
+	json.Unmarshal(response.Body.Bytes(), &originalProduct)
+
+	payload := []byte(`{"name":"test product - updated name","price":11.22}`)
+
+	req, _ = http.NewRequest("PUT", "/product/1", bytes.NewBuffer(payload))
+	response = executeRequest(req)
+
+	checkResponseCode(t, http.StatusOK, response.Code)
+
+	var m map[string]interface{}
+	json.Unmarshal(response.Body.Bytes(), &m)
+
+	if m["id"] != originalProduct["id"] {
+		t.Errorf("Expected the id to remain the same (%v). Got %v", originalProduct["id"], m["id"])
+	}
+
+	if m["name"] == originalProduct["name"] {
+		t.Errorf("Expected the name to change from '%v' to '%v'. Got '%v'", originalProduct["name"], m["name"], m["name"])
+	}
+
+	if m["price"] == originalProduct["price"] {
+		t.Errorf("Expected the price to change from '%v' to '%v'. Got '%v'", originalProduct["price"], m["price"], m["price"])
+	}
+}
+
+func TestMain(m *testing.M) {
+	a = main.Monitor{}
+	a.Initialize(
+		os.Getenv("TEST_DB_USERNAME"),
+		os.Getenv("TEST_DB_PASSWORD"),
+		os.Getenv("TEST_DB_NAME"))
+
+	ensureTableExists()
+
+	code := m.Run()
+
+	clearTable()
+
+	os.Exit(code)
+}
