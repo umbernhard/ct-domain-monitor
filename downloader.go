@@ -22,6 +22,7 @@ func processCert(entry *ct.LogEntry, cert *x509.Certificate, precert bool, serve
 	}
 
 	flag := false
+
 	for _, hostname := range hostnames[server] {
 		if domain == hostname {
 			flag = true
@@ -88,7 +89,7 @@ func foundCert(entry *ct.LogEntry, server string) {
 
 func foundPrecert(entry *ct.LogEntry, server string) {
 	precert := entry.Precert.TBSCertificate
-	processCert(entry, &precert, false, server)
+	processCert(entry, &precert, true, server)
 }
 
 func downloader(logConf LogConfig, logUpdater chan LogConfig, done chan bool, rootFile string, numFetch, numMatch int) {
@@ -119,7 +120,9 @@ func downloader(logConf LogConfig, logUpdater chan LogConfig, done chan bool, ro
 				logUpdater <- logConf
 			}
 		}()
+
 		delta, err := s.Scan(foundCert, foundPrecert, updater)
+
 		if err != nil {
 			log.Notice("Scan failed ", err)
 		} else {

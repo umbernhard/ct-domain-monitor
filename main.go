@@ -119,6 +119,7 @@ func main() {
 	done := make(chan bool)
 	finished := make(chan bool)
 	counter := 0
+
 	for _, logC := range config {
 		go downloader(logC, logUpdater, done, *rootFile, *numFetch, *numMatch)
 		counter++
