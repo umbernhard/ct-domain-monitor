@@ -48,7 +48,7 @@ func (r *record) createDomain(db *sql.DB) {
 	newHostNames[r.CTServer] = append(newHostNames[r.CTServer], r.Domain)
 
 	if hostnames == nil {
-		hostames = make(map[string][]string)
+		hostnames = make(map[string][]string)
 	}
 	hostnames[r.CTServer] = append(hostnames[r.CTServer], r.Domain)
 }
