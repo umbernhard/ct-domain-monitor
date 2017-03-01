@@ -42,6 +42,7 @@ func (r *record) deleteDomain(db *sql.DB) error {
 }
 
 func (r *record) createDomain(db *sql.DB) {
+	log.Debugf("Creating domain %v", r.Domain)
 	if newHostNames == nil {
 		newHostNames = make(map[string][]string)
 	}

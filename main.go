@@ -32,8 +32,6 @@ var format = logging.MustStringFormatter(
 )
 
 // TODO instrument for Prometheus
-// TODO interface for adding, removing, and showing hostnames and certs (REST?)
-// TODO postgres
 
 func initialize(rootFile, configFile, output string, logLevel int) {
 
@@ -84,14 +82,6 @@ func initialize(rootFile, configFile, output string, logLevel int) {
 
 func main() {
 
-	monitor := Monitor{}
-	monitor.Initialize(
-		os.Getenv("APP_DB_USERNAME"),
-		os.Getenv("APP_DB_PASSWORD"),
-		os.Getenv("APP_DB_NAME"))
-
-	monitor.Run(":8080")
-
 	configFile := flag.String("config", "./config.json", "the configuration file for log servers")
 	output := flag.String("log", "-", "log file")
 	rootFile := flag.String("root", "/etc/nss-root-store.pem", "an nss root store, defaults to etc/nss-root-store.pem")
@@ -102,6 +92,15 @@ func main() {
 	ex := flag.Bool("exit", false, "Tells the program to exit once it has gotten the most recent certificates")
 	flag.Parse()
 
+	user := flag.String("user", "monitor", "User for postgres DB")
+	password := flag.String("password", "", "Password for pq")
+	dbname := flag.String("dbname", "ctdomainmonitor", "Name of pq database")
+
+	monitor = Monitor{}
+	monitor.Initialize(*user, *password, *dbname)
+	log.Debugf("Initialized monitor, db %v", monitor.DB)
+
+	go monitor.Run(":8080")
 	// change this to allow multithreading
 	runtime.GOMAXPROCS(*numProcs)
 	initialize(*rootFile, *configFile, *output, *logLevel)

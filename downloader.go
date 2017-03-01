@@ -70,11 +70,11 @@ func processCert(entry *ct.LogEntry, cert *x509.Certificate, precert bool, serve
 	log.Criticalf("Cert! %s", domain)
 	// XOR valid and precert, since we only want valid certs and also precerts
 	if valid != precert {
+		log.Debugf("Adding cert %v", domain)
 		block := pem.Block{"TRUSTED CERTIFICATE", nil, cert.Raw}
 		cert_pem := string(pem.EncodeToMemory(&block))
 		err := monitor.DB.QueryRow(
-			"INSERT INTO domains(domain, cert_pem) VALUES($1, $2)",
-			domain, cert_pem).Scan()
+			"INSERT INTO domains(domain, cert_pem) VALUES($1, $2)", domain, cert_pem).Scan()
 
 		if err != nil {
 			log.Debugf("Could not cert to database: %s", err)

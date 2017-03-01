@@ -119,6 +119,7 @@ func (a *Monitor) initializeRoutes() {
 	a.Router.HandleFunc("/domain", a.createDomain).Methods("POST")
 	a.Router.HandleFunc("/domain/{domain:.+}", a.getDomain).Methods("GET")
 	a.Router.HandleFunc("/domain/{domain:.+}", a.deleteDomain).Methods("DELETE")
+	log.Debugf("Monitor: Initialized routes")
 }
 
 // Initialize the monitor
@@ -128,7 +129,7 @@ func (a *Monitor) Initialize(user, password, dbname string) {
 	var err error
 	a.DB, err = sql.Open("postgres", connectionString)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Monitor: Couldn't connect to the database: %v", err)
 	}
 
 	a.Router = mux.NewRouter()
