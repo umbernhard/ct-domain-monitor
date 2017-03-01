@@ -5,7 +5,6 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -128,8 +127,7 @@ func (a *Monitor) initializeRoutes() {
 
 // Initialize the monitor
 func (a *Monitor) Initialize(user, password, dbname string) {
-	connectionString :=
-		fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable ", user, password, dbname)
+	connectionString := "user=" + user + " dbname=" + dbname + " sslmode=disable"
 
 	var err error
 	a.DB, err = sql.Open("postgres", connectionString)
