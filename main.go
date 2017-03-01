@@ -19,6 +19,9 @@ var log = logging.MustGetLogger("")
 
 var hostnames map[string][]string
 
+// Buffer for newly added domains so we can catch up
+var newHostNames map[string][]string
+
 var monitor Monitor
 
 // Example format string. Everything except the message has a custom color
@@ -33,6 +36,9 @@ var format = logging.MustStringFormatter(
 // TODO postgres
 
 func initialize(rootFile, configFile, output string, logLevel int) {
+
+	hostnames = make(map[string][]string)
+	newHostNames = make(map[string][]string)
 	var f *os.File
 	if output == "-" {
 		f = os.Stderr
@@ -102,8 +108,6 @@ func main() {
 	exit = *ex
 
 	config, err := NewConfiguration(*configFile)
-
-	hostnames = make(map[string][]string)
 
 	for _, conf := range config {
 		hostnames[conf.Name] = conf.HostNames

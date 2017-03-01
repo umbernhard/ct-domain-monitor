@@ -5,13 +5,13 @@ package main
 import (
 	"database/sql"
 	//	"errors"
-	"fmt"
 )
 
 type record struct {
-	Domain  string `json:"domain"`
-	Cert    string `json:"cert"`
-	Created string `json:"created_at"`
+	Domain   string `json:"domain"`
+	Cert     string `json:"cert"`
+	CTServer string `json:"server"`
+	Created  string `json:"created_at"`
 }
 
 func (r *record) getDomain(db *sql.DB) ([]string, error) {
@@ -41,20 +41,11 @@ func (r *record) deleteDomain(db *sql.DB) error {
 	return err
 }
 
-func (r *record) createDomain(db *sql.DB) error {
-	fmt.Print("-----------------")
-	fmt.Print(r.Domain)
-
-	fmt.Print("-----------------")
-	err := db.QueryRow(
-		"INSERT INTO domains(domain, cert_pem) VALUES($1, $2)",
-		r.Domain, r.Cert).Scan()
-
-	if err != nil {
-		return err
+func (r *record) createDomain(db *sql.DB) {
+	if newHostNames == nil {
+		newHostNames = make(map[string][]string)
 	}
-
-	return nil
+	newHostNames[r.CTServer] = append(newHostNames[r.CTServer], r.Domain)
 }
 
 func (r *record) getDomains(db *sql.DB) ([]string, error) {

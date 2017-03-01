@@ -78,10 +78,7 @@ func (a *Monitor) createDomain(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	if err := p.createDomain(a.DB); err != nil {
-		respondWithError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
+	p.createDomain(a.DB)
 
 	respondWithJSON(w, http.StatusCreated, p)
 }

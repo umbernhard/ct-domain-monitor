@@ -3,6 +3,7 @@
 package main_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -77,28 +78,28 @@ func TestGetNonExistentRecord(t *testing.T) {
 	}
 }
 
-//func TestAddRecord(t *testing.T) {
-//	clearTable()
-//
-//	payload := []byte(`{"domain":"test.com","cert_pem":"` + testPEM + `"}`)
-//
-//	req, _ := http.NewRequest("POST", "/domain", bytes.NewBuffer(payload))
-//	response := executeRequest(req)
-//
-//	checkResponseCode(t, http.StatusCreated, response.Code)
-//
-//	var m map[string]interface{}
-//	json.Unmarshal(response.Body.Bytes(), &m)
-//
-//	if m["domain"] != "test.com" {
-//		t.Errorf("Expected domain to be 'test.com'. Got '%v'", m["domain"])
-//	}
-//
-//	if m["cert_pem"] != testPEM {
-//		t.Errorf("Expected product pem to be '"+testPEM+"'. Got '%v'", m["cert_pem"])
-//	}
-//
-//}
+func TestAddRecord(t *testing.T) {
+	clearTable()
+
+	payload := []byte(`{"domain":"test.com","server":"testtube"}`)
+
+	req, _ := http.NewRequest("POST", "/domain", bytes.NewBuffer(payload))
+	response := executeRequest(req)
+
+	checkResponseCode(t, http.StatusCreated, response.Code)
+
+	var m map[string]interface{}
+	json.Unmarshal(response.Body.Bytes(), &m)
+
+	if m["domain"] != "test.com" {
+		t.Errorf("Expected domain to be 'test.com'. Got '%v'", m["domain"])
+	}
+
+	if m["server"] != "testtube" {
+		t.Errorf("Expected product pem to be 'testtube'. Got '%v'", m["server"])
+	}
+
+}
 
 func TestGetRecord(t *testing.T) {
 	clearTable()
@@ -182,6 +183,7 @@ func TestGetNewCerts(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
+
 	a = main.Monitor{}
 	a.Initialize(
 		os.Getenv("TEST_DB_USERNAME"),
