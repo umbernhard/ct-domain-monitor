@@ -6,7 +6,6 @@ import (
 	"encoding/pem"
 	"time"
 
-	"github.com/umbernhard/ct-domain-monitor/pqhandler"
 	"github.com/zmap/zgrab/ztools/zct"
 	"github.com/zmap/zgrab/ztools/zct/scanner"
 	"github.com/zmap/zgrab/ztools/zct/x509"
@@ -70,10 +69,16 @@ func processCert(entry *ct.LogEntry, cert *x509.Certificate, precert bool, serve
 	log.Criticalf("Cert! %s", domain)
 	// XOR valid and precert, since we only want valid certs and also precerts
 	if valid != precert {
-		err = postgres.Submit(server, domain, cert.Raw)
+		block := pem.Block{"TRUSTED CERTIFICATE", nil, cert.Raw}
+		cert_pem := string(pem.EncodeToMemory(&block))
+		err := monitor.DB.QueryRow(
+			"INSERT INTO domains(domain, cert_pem) VALUES($1, $2)",
+			domain, cert_pem).Scan()
+
 		if err != nil {
-			log.Debugf("Could not insert to database: %s", err)
+			log.Debugf("Could not cert to database: %s", err)
 		}
+
 	}
 }
 

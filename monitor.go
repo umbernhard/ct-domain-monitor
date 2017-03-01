@@ -5,7 +5,6 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -127,7 +126,7 @@ func (a *Monitor) initializeRoutes() {
 
 // Initialize the monitor
 func (a *Monitor) Initialize(user, password, dbname string) {
-	connectionString := "user=" + user + " dbname=" + dbname + " sslmode=disable"
+	connectionString := "user='" + user + "' dbname='" + dbname + "' sslmode=disable"
 
 	var err error
 	a.DB, err = sql.Open("postgres", connectionString)

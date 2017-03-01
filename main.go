@@ -8,8 +8,8 @@ import (
 	"runtime"
 	"syscall"
 
+	_ "github.com/lib/pq"
 	"github.com/op/go-logging"
-	"github.com/umbernhard/ct-domain-monitor/pqhandler"
 	"github.com/zmap/zgrab/ztools/zct/x509"
 )
 
@@ -18,6 +18,8 @@ var roots *x509.CertPool
 var log = logging.MustGetLogger("")
 
 var hostnames map[string][]string
+
+var monitor Monitor
 
 // Example format string. Everything except the message has a custom color
 // which is dependent on the log level. Many fields have a custom output
@@ -74,7 +76,15 @@ func initialize(rootFile, configFile, output string, logLevel int) {
 	}()
 }
 
-func Run() {
+func main() {
+
+	monitor := Monitor{}
+	monitor.Initialize(
+		os.Getenv("APP_DB_USERNAME"),
+		os.Getenv("APP_DB_PASSWORD"),
+		os.Getenv("APP_DB_NAME"))
+
+	monitor.Run(":8080")
 
 	configFile := flag.String("config", "./config.json", "the configuration file for log servers")
 	output := flag.String("log", "-", "log file")
@@ -83,8 +93,6 @@ func Run() {
 	numFetch := flag.Int("fetcher", 1, "Number of workers assigned to fetch certificates from each server")
 	numMatch := flag.Int("matcher", 1, "Number of workers assigned to parse certs from each server")
 	logLevel := flag.Int("log-level", 0, "log level")
-	user := flag.String("user", "monitor", "Postgres user")
-	dbname := flag.String("dbname", "ctdomainmonitor", "Postgres db name")
 	ex := flag.Bool("exit", false, "Tells the program to exit once it has gotten the most recent certificates")
 	flag.Parse()
 
@@ -92,12 +100,6 @@ func Run() {
 	runtime.GOMAXPROCS(*numProcs)
 	initialize(*rootFile, *configFile, *output, *logLevel)
 	exit = *ex
-
-	err := postgres.Open(*user, *dbname)
-	if err != nil {
-		log.Fatalf("Couldn't establish connection to databse: %s", err)
-	}
-	defer postgres.Close()
 
 	config, err := NewConfiguration(*configFile)
 
@@ -140,9 +142,4 @@ func Run() {
 			}
 		}
 	}
-}
-
-func main() {
-
-	Run()
 }
